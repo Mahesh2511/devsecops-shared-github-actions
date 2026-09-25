@@ -46,6 +46,19 @@ After the three repositories are published and `v1` is tagged on the shared repo
 
 To enforce blocking: *Settings → Branches (or Rules) → require status check* `build / PR Check / PR checks` on `main`.
 
+### Actual results on GitHub (2026-09-25)
+
+| Step | Run | `build / PR Check / PR checks` | `build / Build` | Evidence from the log |
+|---|---|---|---|---|
+| Framework CI | [devsecops-shared-github-actions run 36115259928](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions/runs/36115259928) | n/a | n/a | Unit tests plus all 11 action scenarios ✅ |
+| E1 (manual run on `main`) | [backend-sample run 36115388011](https://github.com/Mahesh2511/backend-sample/actions/runs/36115388011) | ✅ | ✅ | `block_merge=false` |
+| E2 | [backend-sample PR #1](https://github.com/Mahesh2511/backend-sample/pull/1) | ❌ | skipped | `artifactId mismatch: 2 distinct values found: 'another-service' in service-b/pom.xml; 'sample-service' in pom.xml, service-a/pom.xml` |
+| E3 (manual run on `main`) | [frontend-sample run 36115393163](https://github.com/Mahesh2511/frontend-sample/actions/runs/36115393163) | ✅ | ✅ | `block_merge=false` |
+| E4 | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1), commit 1 | ❌ | skipped | `config/settings.xml: mismatched tag: line 8, column 2` (inline annotation) |
+| E5 | frontend-sample PR #1, commit 2 | ✅ | ✅ | `artifact_type=frontend`, `block_merge=false`, mock build ran |
+
+E1 to E4 ran on `v1.0.0`. It rendered the skipped job's name literally as `Build (${{ inputs.artifact_type }})`, because GitHub doesn't evaluate expressions in a skipped job's name. `v1.0.1` gives the job the static name `Build`, and E5 ran on it.
+
 ## Local run results (pre-publish)
 
 ```
