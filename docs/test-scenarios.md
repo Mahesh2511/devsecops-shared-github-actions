@@ -31,6 +31,8 @@ Scenarios are covered at three levels:
 | R2 | Other failing check still blocks | any | `security_check.passed=false`, artifact passes | `block_merge=true` | `test_existing_failure_still_blocks_even_if_artifact_check_passes` |
 | R3 | Fail-safe gating | any | Entry missing `passed`, `"true"` string, `null`, empty map | `block_merge=true` | `test_fail_safe_on_ambiguous_entries` |
 | R4 | Output contract | both | Pass and fail runs | `$GITHUB_OUTPUT` has `result_map` (JSON) and `block_merge`; exit 0 | `GitHubOutputContractTest` |
+| BA1 | Build action plans | backend / frontend | Build job after a passing PR check | Per-type plan (`mvn …` / `npm …`); output `artifact_type` | `test_backend_plan`, `test_frontend_plan`; ci.yml `build-action` job |
+| BA2 | Build action, unknown type | `mobile` | Called directly | Exit 1, `Unsupported artifact_type` | `test_unsupported_type_fails` |
 
 ## End-to-end demonstration on GitHub
 
@@ -65,7 +67,7 @@ E1 to E4 ran on `v1.0.0`. It rendered the skipped job's name literally as `Build
 
 ```
 $ python -m unittest discover -s tests
-Ran 33 tests ... OK
+Ran 36 tests ... OK
 
 $ python actions/prcheck-utils-action/main.py --artifact-type backend --workspace ../backend-sample --enforce
 block_merge=false (all required checks passed)                        exit 0

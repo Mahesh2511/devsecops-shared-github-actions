@@ -14,7 +14,7 @@ The exercise references `devsecops/shared-github-actions/.github/workflows/build
 | output | `block_merge` | string | | | `"true"` \| `"false"` |
 
 Jobs: `pr-check` (calls `pr_check.yml`), then `build` (`needs: pr-check`).
-**Assumed about the real one:** it already has a PR-check stage that runs before the build, and adding inputs to it is acceptable. The real build steps (Maven, npm, publishing) are replaced by `echo` mocks.
+**Assumed about the real one:** it already has a PR-check stage that runs before the build, and adding inputs to it is acceptable. Its build job delegates to `build-action`, whose real toolchain steps (Maven, npm, publishing) are mocked.
 
 ### `pr_check.yml` (reusable workflow, `on: workflow_call`)
 
@@ -41,6 +41,16 @@ Steps: checkout → prcheck-utils-action → gate step that fails the job unless
 
 **Assumed about the real one:** it runs a set of checks, records each in a map keyed by check name with a boolean pass flag, and derives `block_merge` as "any required check failed". The mock's check registry (`CHECKS` in `main.py`) stands in for those existing checks. Only `artifact_consistency` is implemented, because the exercise says not to add unrelated validators.
 
+### `build-action` (composite action)
+
+| Direction | Name | Required | Notes |
+|---|---|---|---|
+| input | `artifact_type` | yes | Selects the build plan (`utils/build_plans.py`) |
+| output | `artifact_type` | | Normalized type that was built |
+| output | `build_status` | | `mocked` |
+
+**Assumed about the real one:** the diagram (`image.png`) shows a build action next to the PR-check action with the same `action.yml` / `utils` / `main.py` layout. The mock resolves the per-type plan (`mvn -B -ntp verify` for backend; `npm ci`, `npm run build` for frontend) and prints it without running it. Running it would fail on purpose for backend-sample (see interpretation decision 2), and the frontend sample has no `package.json`. An unknown type fails the build step.
+
 ### `result_map` entry schema (assumed)
 
 ```json
@@ -55,7 +65,7 @@ Only `passed` is load-bearing for gating. `required` defaults to `true`. The oth
 |---|---|---|
 | Owner and repo | `Mahesh2511/devsecops-shared-github-actions` (personal account standing in for the org) | e.g. `devsecops/shared-github-actions` |
 | Version | `@v1` major tag | The org's release tags |
-| Build steps | `echo` mocks | Real toolchain steps |
+| Build steps | `build-action` prints the per-type plan | Real toolchain steps |
 | Merge blocking | Failed `PR checks` job; required status check configured manually | Org ruleset requiring the PR-check status on all repos |
 | Existing PR checks | Not implemented; `result_map` input accepts their results | security, dependency and other checks |
 | Cross-repo access | Shared repo must be public, or (if private or internal) *Settings → Actions → General → Access* must allow other repos in the org/account | Same |

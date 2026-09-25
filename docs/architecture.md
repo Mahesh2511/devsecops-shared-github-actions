@@ -15,6 +15,7 @@ flowchart LR
     BV["utils/backend_validator.py"]
     FV["utils/frontend_validator.py"]
     RU["utils/result_utils.py<br/>result_map + block_merge"]
+    BA["build-action<br/>action.yml → main.py<br/>utils/build_plans.py"]
   end
   B --> BY
   F --> BY
@@ -24,6 +25,7 @@ flowchart LR
   A -- frontend --> FV
   BV --> RU
   FV --> RU
+  BY -- "job build (needs pr-check)" --> BA
 ```
 
 Text view of the end-to-end flow:
@@ -50,7 +52,7 @@ build.yml (workflow_call)
    └─ job build
          needs: pr-check
          if: needs.pr-check.result == 'success' && needs.pr-check.outputs.block_merge == 'false'
-         checkout → type-specific build steps (mocked)
+         checkout → build-action@v1 (artifact_type) → per-type build plan (mocked)
 ```
 
 ## Where the new logic plugs into build.yml

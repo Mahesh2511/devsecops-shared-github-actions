@@ -1,0 +1,34 @@
+# MOCK of the organization's shared build action.
+# The real action is private; this composite action implements the assumed
+# interface documented in docs/assumptions.md. build.yml calls it only after
+# the PR check has passed.
+name: build-action
+description: Builds the checked-out repository for the declared artifact type (mocked).
+
+inputs:
+  artifact_type:
+    description: "backend | frontend. Selects the build plan."
+    required: true
+
+outputs:
+  artifact_type:
+    description: "Normalized artifact type that was built"
+    value: ${{ steps.build.outputs.artifact_type }}
+  build_status:
+    description: "'mocked' in this mock implementation"
+    value: ${{ steps.build.outputs.build_status }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Build
+      id: build
+      shell: bash
+      env:
+        BUILD_ARTIFACT_TYPE: ${{ inputs.artifact_type }}
+      run: python "$GITHUB_ACTION_PATH/main.py"

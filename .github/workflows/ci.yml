@@ -1,7 +1,8 @@
 # Self-test for the shared framework itself (not called by consumers).
 # 1. Unit tests for the validators and the result_map/block_merge logic.
-# 2. Dogfood: runs the local action against PASS/FAIL fixtures and asserts
+# 2. Dogfood: runs the local prcheck-utils-action against PASS/FAIL fixtures and asserts
 #    block_merge matches the expectation.
+# 3. Runs the local build-action for each supported artifact type.
 name: Framework CI
 
 on:
@@ -25,7 +26,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile
-        run: python -m compileall -q actions/prcheck-utils-action
+        run: python -m compileall -q actions
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
@@ -73,3 +74,29 @@ jobs:
             exit 1
           fi
           echo "OK: block_merge=$ACTUAL as expected"
+
+  build-action:
+    name: "Build action: ${{ matrix.artifact_type }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        artifact_type: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run build-action
+        id: build
+        uses: ./actions/build-action
+        with:
+          artifact_type: ${{ matrix.artifact_type }}
+      - name: Assert outputs
+        env:
+          ACTUAL: ${{ steps.build.outputs.artifact_type }}
+          EXPECTED: ${{ matrix.artifact_type }}
+        run: |
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Expected artifact_type=$EXPECTED but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "OK: build-action reported artifact_type=$ACTUAL"

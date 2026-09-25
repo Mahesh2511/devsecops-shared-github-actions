@@ -2,7 +2,7 @@
 
 A shared, organization-wide GitHub Actions framework that runs **PR validation before the build** for any repository. It adds an **artifact consistency** check that works for both backend (Maven) and frontend (XML) repositories through **one** consumer workflow.
 
-> **Mock notice.** The organization's real `build.yml`, `pr_check.yml` and `prcheck-utils-action` are private. The versions in this repository are mocks of their *assumed interfaces*, built to show the integration design. Every assumption is listed in [docs/assumptions.md](docs/assumptions.md).
+> **Mock notice.** The organization's real `build.yml`, `pr_check.yml`, `prcheck-utils-action` and build action are private. The versions in this repository are mocks of their *assumed interfaces*, built to show the integration design. Every assumption is listed in [docs/assumptions.md](docs/assumptions.md).
 
 ## Repository roles
 
@@ -17,7 +17,7 @@ A shared, organization-wide GitHub Actions framework that runs **PR validation b
   build.yml            reusable: PR Check stage -> gated Build stage     (MOCK)
   pr_check.yml         reusable: checkout -> prcheck-utils-action -> gate (MOCK)
   ci.yml               self-test of this framework (unit tests + action scenarios)
-actions/prcheck-utils-action/
+actions/prcheck-utils-action/            the "PR_check action" in image.png
   action.yml           composite action interface                         (MOCK)
   main.py              runs registered checks -> result_map -> block_merge
   utils/
@@ -25,9 +25,14 @@ actions/prcheck-utils-action/
     frontend_validator.py  every XML file under xml_path must be well-formed
     result_utils.py        CheckResult, result_map merge, block_merge rule
     fs_utils.py            safe path resolution + deterministic recursive scan
+actions/build-action/                    the "build action" in image.png
+  action.yml           composite action interface                         (MOCK)
+  main.py              resolves and reports the build plan for artifact_type
+  utils/build_plans.py artifact_type -> build commands (mvn / npm)
 templates/consumer-build.yml  the single consumer workflow to copy
 tests/                  unit tests + PASS/FAIL fixtures
-docs/                   architecture, assumptions, test scenarios
+docs/                   architecture, assumptions, test scenarios, E2E guide,
+                        requirements traceability, reviewer guide
 ```
 
 ## Using it from a consumer repository
@@ -72,6 +77,7 @@ consumer build.yml ──artifact_type, xml_path──▶ build.yml
                                     └─ block_merge = any required check failed
                               [3] gate: fail the job unless block_merge == "false"
   build.yml   job build   needs: pr-check, if: result == success && block_merge == 'false'
+                          checkout -> build-action (artifact_type)
 ```
 
 * **The PR check always runs before the build.** `build` has `needs: pr-check`, and a failed or blocked PR check skips it.

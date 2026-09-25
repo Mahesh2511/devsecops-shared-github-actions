@@ -65,14 +65,10 @@ jobs:
           echo "artifact_type=$ARTIFACT_TYPE"
           echo "PR checks passed. result_map=$RESULT_MAP"
 
-      # The real build steps are private, so these are mocks. The type-specific
-      # toolchain steps would go here (setup-java + mvn / setup-node + npm ...).
-      - name: Build backend artifact (mock)
-        if: ${{ inputs.artifact_type == 'backend' }}
-        run: |
-          echo "MOCK: would run 'mvn -B verify' and publish the backend artifact."
-
-      - name: Build frontend artifact (mock)
-        if: ${{ inputs.artifact_type == 'frontend' }}
-        run: |
-          echo "MOCK: would run the frontend build and publish the frontend artifact."
+      # Type-specific build logic lives in the shared build-action, the
+      # counterpart of prcheck-utils-action. Referenced by repo + tag for the
+      # same reason: a "./" path would resolve against the consumer's checkout.
+      - name: Build artifact (build-action)
+        uses: Mahesh2511/devsecops-shared-github-actions/actions/build-action@v1
+        with:
+          artifact_type: ${{ inputs.artifact_type }}
