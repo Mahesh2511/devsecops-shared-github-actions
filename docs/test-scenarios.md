@@ -58,6 +58,7 @@ To enforce blocking: *Settings → Branches (or Rules) → require status check*
 | E3 (manual run on `main`) | [frontend-sample run 36115393163](https://github.com/Mahesh2511/frontend-sample/actions/runs/36115393163) | ✅ | ✅ | `block_merge=false` |
 | E4 | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1), commit 1 | ❌ | skipped | `config/settings.xml: mismatched tag: line 8, column 2` (inline annotation) |
 | E5 | frontend-sample PR #1, commit 2 | ✅ | ✅ | `artifact_type=frontend`, `block_merge=false`, mock build ran |
+| After `v1.1.0` (build-action) | [framework CI 36116539311](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions/runs/36116539311) · [backend 36116569204](https://github.com/Mahesh2511/backend-sample/actions/runs/36116569204) · [frontend 36116573971](https://github.com/Mahesh2511/frontend-sample/actions/runs/36116573971) | ✅ | ✅ | Build job runs `build-action@v1`: `MOCK step 1: mvn -B -ntp verify` |
 
 **Merge blocking.** Both sample repos protect `main` with the required status check `build / PR Check / PR checks`. It's restricted to the GitHub Actions app (id 15368) and also enforced for admins. Result: backend PR #1 shows `mergeStateStatus=BLOCKED` and `gh pr merge` is refused. Frontend PR #1, whose check passed, is `CLEAN`. `build / Build` isn't a required check: a skipped required check counts as passing, so requiring it would add nothing.
 
