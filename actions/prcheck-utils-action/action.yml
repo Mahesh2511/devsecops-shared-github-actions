@@ -1,0 +1,55 @@
+# MOCK of the organization's shared prcheck-utils-action.
+# The real action is private; this composite action implements the assumed
+# interface documented in docs/assumptions.md.
+#
+# Contract: the caller MUST check out the source repository before this action
+# runs. The action only reads files from $GITHUB_WORKSPACE.
+name: prcheck-utils-action
+description: >-
+  Runs organization PR checks against the checked-out repository, accumulates
+  their results into result_map and computes block_merge.
+
+inputs:
+  artifact_type:
+    description: "Artifact type that selects the artifact_consistency rules: backend | frontend"
+    required: true
+  xml_path:
+    description: "Directory (relative to the repository root) containing XML files. Required for frontend."
+    required: false
+    default: ""
+  result_map:
+    description: "JSON result_map produced by earlier checks; artifact_consistency is merged into it."
+    required: false
+    default: "{}"
+  working_directory:
+    description: "Scan root relative to the workspace (for monorepos). Defaults to the repository root."
+    required: false
+    default: "."
+
+outputs:
+  result_map:
+    description: "JSON object keyed by check name, each entry containing at least { passed: bool }"
+    value: ${{ steps.run.outputs.result_map }}
+  block_merge:
+    description: "'true' if any required check failed, otherwise 'false'"
+    value: ${{ steps.run.outputs.block_merge }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Run PR checks
+      id: run
+      shell: bash
+      # Inputs are passed through env vars, never interpolated into the script,
+      # so values from a PR cannot inject shell commands.
+      env:
+        PRCHECK_ARTIFACT_TYPE: ${{ inputs.artifact_type }}
+        PRCHECK_XML_PATH: ${{ inputs.xml_path }}
+        PRCHECK_RESULT_MAP: ${{ inputs.result_map }}
+        PRCHECK_WORKING_DIRECTORY: ${{ inputs.working_directory }}
+      run: python "$GITHUB_ACTION_PATH/main.py"

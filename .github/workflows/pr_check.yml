@@ -1,0 +1,73 @@
+# MOCK of the organization's shared PR-check reusable workflow.
+# The real pr_check.yml is private; this implements the interface documented in
+# docs/assumptions.md. Called by build.yml and not meant to be triggered directly.
+name: Shared PR Check
+
+on:
+  workflow_call:
+    inputs:
+      artifact_type:
+        description: "backend | frontend (validated by prcheck-utils-action)"
+        required: true
+        type: string
+      xml_path:
+        description: "XML directory relative to the repo root (required for frontend)"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      result_map:
+        description: "JSON result_map from prcheck-utils-action"
+        value: ${{ jobs.pr-checks.outputs.result_map }}
+      block_merge:
+        description: "'true' when any required PR check failed"
+        value: ${{ jobs.pr-checks.outputs.block_merge }}
+
+permissions:
+  contents: read
+
+jobs:
+  pr-checks:
+    name: PR checks
+    runs-on: ubuntu-latest
+    outputs:
+      result_map: ${{ steps.prcheck.outputs.result_map }}
+      block_merge: ${{ steps.prcheck.outputs.block_merge }}
+    steps:
+      # [1] SOURCE CHECKOUT. It must come before any file validation. In a
+      # reusable workflow this checks out the *calling* (consumer) repository
+      # at the PR merge ref.
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # (Existing organization checks would run here and hand their result_map
+      #  to prcheck-utils-action via its result_map input. They're omitted from
+      #  this mock on purpose, since the exercise asks for no unrelated validators.)
+
+      # [2] PR CHECK. Inputs arrive unchanged from the consumer via build.yml.
+      # The action is referenced by repo + tag: a "./" path here would resolve
+      # against the consumer's checkout, not this shared repository.
+      - name: Run PR checks (prcheck-utils-action)
+        id: prcheck
+        uses: Mahesh2511/devsecops-shared-github-actions/actions/prcheck-utils-action@v1
+        with:
+          artifact_type: ${{ inputs.artifact_type }}
+          xml_path: ${{ inputs.xml_path }}
+
+      # [3] MERGE GATE. An output value alone blocks nothing, so the job has to
+      # FAIL. That turns the result into a failed status check, which branch
+      # protection (required status checks) enforces on the PR and which
+      # build.yml's `needs:` enforces on the build. Fail-safe: anything other
+      # than the literal "false" (including a missing output) blocks.
+      - name: Enforce merge gate
+        env:
+          BLOCK_MERGE: ${{ steps.prcheck.outputs.block_merge }}
+        run: |
+          if [ "$BLOCK_MERGE" = "false" ]; then
+            echo "All required PR checks passed (block_merge=false)."
+            exit 0
+          fi
+          echo "::error title=Merge blocked::block_merge=${BLOCK_MERGE:-<unset>}. One or more required PR checks failed; see the 'Run PR checks' step and the job summary."
+          exit 1

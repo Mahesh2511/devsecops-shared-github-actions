@@ -1,0 +1,75 @@
+# Self-test for the shared framework itself (not called by consumers).
+# 1. Unit tests for the validators and the result_map/block_merge logic.
+# 2. Dogfood: runs the local action against PASS/FAIL fixtures and asserts
+#    block_merge matches the expectation.
+name: Framework CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile
+        run: python -m compileall -q actions/prcheck-utils-action
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+  action-scenarios:
+    name: "Action scenario: ${{ matrix.name }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: backend-pass,           artifact_type: backend,     working_directory: tests/fixtures/backend/pass,               xml_path: "",      expect_block: "false" }
+          - { name: backend-mismatch,       artifact_type: backend,     working_directory: tests/fixtures/backend/mismatch,           xml_path: "",      expect_block: "true" }
+          - { name: backend-missing-id,     artifact_type: backend,     working_directory: tests/fixtures/backend/missing_artifact_id, xml_path: "",      expect_block: "true" }
+          - { name: backend-malformed,      artifact_type: backend,     working_directory: tests/fixtures/backend/malformed,          xml_path: "",      expect_block: "true" }
+          - { name: backend-no-pom,         artifact_type: backend,     working_directory: tests/fixtures/backend/no_pom,             xml_path: "",      expect_block: "true" }
+          - { name: frontend-pass,          artifact_type: frontend,    working_directory: tests/fixtures/frontend/pass,              xml_path: xyz,     expect_block: "false" }
+          - { name: frontend-other-path,    artifact_type: frontend,    working_directory: tests/fixtures/frontend/custom_path,       xml_path: ui/resources, expect_block: "false" }
+          - { name: frontend-malformed,     artifact_type: frontend,    working_directory: tests/fixtures/frontend/malformed,         xml_path: xyz,     expect_block: "true" }
+          - { name: frontend-missing-path,  artifact_type: frontend,    working_directory: tests/fixtures/frontend/pass,              xml_path: missing, expect_block: "true" }
+          - { name: frontend-no-xml-path,   artifact_type: frontend,    working_directory: tests/fixtures/frontend/pass,              xml_path: "",      expect_block: "true" }
+          - { name: unsupported-type,       artifact_type: mobile,      working_directory: tests/fixtures/backend/pass,               xml_path: "",      expect_block: "true" }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Local reference is correct HERE: this workflow runs in the shared repo itself.
+      - name: Run prcheck-utils-action
+        id: prcheck
+        uses: ./actions/prcheck-utils-action
+        with:
+          artifact_type: ${{ matrix.artifact_type }}
+          xml_path: ${{ matrix.xml_path }}
+          working_directory: ${{ matrix.working_directory }}
+
+      - name: Assert block_merge
+        env:
+          ACTUAL: ${{ steps.prcheck.outputs.block_merge }}
+          EXPECTED: ${{ matrix.expect_block }}
+          RESULT_MAP: ${{ steps.prcheck.outputs.result_map }}
+        run: |
+          echo "result_map=$RESULT_MAP"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Expected block_merge=$EXPECTED but got '$ACTUAL'"
+            exit 1
+          fi
+          echo "OK: block_merge=$ACTUAL as expected"

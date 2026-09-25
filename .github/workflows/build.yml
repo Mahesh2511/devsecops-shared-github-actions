@@ -1,0 +1,75 @@
+# MOCK of the organization's shared reusable build workflow.
+# The real build.yml is private; this implements the interface documented in
+# docs/assumptions.md. One workflow serves every artifact type: consumers
+# choose with the explicit `artifact_type` input and nothing is inferred.
+name: Shared Build
+
+on:
+  workflow_call:
+    inputs:
+      artifact_type:
+        description: "backend | frontend. Selects the PR-check rules and the build steps."
+        required: true
+        type: string
+      xml_path:
+        description: "Frontend only: XML directory relative to the repo root."
+        required: false
+        type: string
+        default: ""
+    outputs:
+      result_map:
+        description: "JSON result_map produced by the PR-check stage"
+        value: ${{ jobs.pr-check.outputs.result_map }}
+      block_merge:
+        description: "'true' when the PR-check stage blocked the merge"
+        value: ${{ jobs.pr-check.outputs.block_merge }}
+
+permissions:
+  contents: read
+
+jobs:
+  # STAGE 1: PR CHECK. Runs before any build step.
+  # A local "./" reference inside a reusable workflow resolves to this shared
+  # repository at the same commit as this file, so consumers pinned to @v1 get
+  # the matching pr_check.yml.
+  pr-check:
+    name: PR Check
+    uses: ./.github/workflows/pr_check.yml
+    with:
+      artifact_type: ${{ inputs.artifact_type }}
+      xml_path: ${{ inputs.xml_path }}
+
+  # STAGE 2: BUILD. Gated on the PR check.
+  # `needs` already skips this job when pr-check fails. The explicit condition
+  # also requires block_merge to be literally "false", so nothing short of an
+  # explicit pass (not a missing output or an always() added later) lets the build run.
+  build:
+    name: Build (${{ inputs.artifact_type }})
+    needs: pr-check
+    if: ${{ needs.pr-check.result == 'success' && needs.pr-check.outputs.block_merge == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build context
+        env:
+          ARTIFACT_TYPE: ${{ inputs.artifact_type }}
+          RESULT_MAP: ${{ needs.pr-check.outputs.result_map }}
+        run: |
+          echo "artifact_type=$ARTIFACT_TYPE"
+          echo "PR checks passed. result_map=$RESULT_MAP"
+
+      # The real build steps are private, so these are mocks. The type-specific
+      # toolchain steps would go here (setup-java + mvn / setup-node + npm ...).
+      - name: Build backend artifact (mock)
+        if: ${{ inputs.artifact_type == 'backend' }}
+        run: |
+          echo "MOCK: would run 'mvn -B verify' and publish the backend artifact."
+
+      - name: Build frontend artifact (mock)
+        if: ${{ inputs.artifact_type == 'frontend' }}
+        run: |
+          echo "MOCK: would run the frontend build and publish the frontend artifact."

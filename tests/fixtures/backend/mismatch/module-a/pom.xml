@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.fixture</groupId>
+    <artifactId>orders-api</artifactId>
+    <version>1.0</version>
+  </parent>
+  <artifactId>orders-api</artifactId>
+  <dependencies>
+    <dependency>
+      <groupId>org.other</groupId>
+      <artifactId>unrelated-lib</artifactId>
+    </dependency>
+  </dependencies>
+</project>

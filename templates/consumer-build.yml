@@ -1,0 +1,27 @@
+# THE single consumer workflow for every repository that uses the shared framework.
+# Copy it to <consumer-repo>/.github/workflows/build.yml and set the `with:` block.
+# Backend and frontend repos use this same file; only the declared configuration
+# differs, and the framework never infers the artifact type.
+name: Build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Pin to a release tag (@v1 or @v1.2.0), never @main, so framework
+    # changes reach consumers only when the org publishes a new version.
+    uses: Mahesh2511/devsecops-shared-github-actions/.github/workflows/build.yml@v1
+    with:
+      artifact_type: backend        # backend | frontend
+      # xml_path: path/to/xml       # required when artifact_type is frontend
+
+      # Alternative for a byte-identical file in every repo: read the declaration
+      # from repository (or org) variables instead of literals:
+      #   artifact_type: ${{ vars.ARTIFACT_TYPE }}
+      #   xml_path: ${{ vars.XML_PATH }}
+      # An unset variable arrives as "" and fails the PR check. It never passes silently.
