@@ -43,8 +43,11 @@ jobs:
   # `needs` already skips this job when pr-check fails. The explicit condition
   # also requires block_merge to be literally "false", so nothing short of an
   # explicit pass (not a missing output or an always() added later) lets the build run.
+  # Static name on purpose: GitHub doesn't evaluate expressions in the name of a
+  # skipped job, and a stable name is needed to use this job as a required check.
+  # The artifact type is printed in the "Build context" step instead.
   build:
-    name: Build (${{ inputs.artifact_type }})
+    name: Build
     needs: pr-check
     if: ${{ needs.pr-check.result == 'success' && needs.pr-check.outputs.block_merge == 'false' }}
     runs-on: ubuntu-latest

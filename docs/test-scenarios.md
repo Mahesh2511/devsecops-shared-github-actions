@@ -38,9 +38,9 @@ After the three repositories are published and `v1` is tagged on the shared repo
 
 | Step | Repo | Change in a PR | Expected on the PR |
 |---|---|---|---|
-| E1 | backend-sample | Any harmless change (README) | `PR Check` ✅ → `Build (backend)` ✅ |
+| E1 | backend-sample | Any harmless change (README) | `PR Check` ✅ → `Build` ✅ |
 | E2 | backend-sample | `service-b/pom.xml`: project `artifactId` → `another-service` | `PR Check` ❌ (`artifactId mismatch … 'another-service' in service-b/pom.xml`), `Build` **skipped**; merge blocked if required |
-| E3 | frontend-sample | Any harmless change | `PR Check` ✅ → `Build (frontend)` ✅ |
+| E3 | frontend-sample | Any harmless change | `PR Check` ✅ → `Build` ✅ |
 | E4 | frontend-sample | Break `config/settings.xml` (remove a closing tag) | `PR Check` ❌ with annotation on `config/settings.xml`, `Build` **skipped** |
 | E5 | frontend-sample | Revert E4 on the same PR | Check goes green again, build runs |
 
