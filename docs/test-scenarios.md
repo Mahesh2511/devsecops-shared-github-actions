@@ -57,6 +57,8 @@ To enforce blocking: *Settings → Branches (or Rules) → require status check*
 | E4 | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1), commit 1 | ❌ | skipped | `config/settings.xml: mismatched tag: line 8, column 2` (inline annotation) |
 | E5 | frontend-sample PR #1, commit 2 | ✅ | ✅ | `artifact_type=frontend`, `block_merge=false`, mock build ran |
 
+**Merge blocking.** Both sample repos protect `main` with the required status check `build / PR Check / PR checks`. It's restricted to the GitHub Actions app (id 15368) and also enforced for admins. Result: backend PR #1 shows `mergeStateStatus=BLOCKED` and `gh pr merge` is refused. Frontend PR #1, whose check passed, is `CLEAN`. `build / Build` isn't a required check: a skipped required check counts as passing, so requiring it would add nothing.
+
 E1 to E4 ran on `v1.0.0`. It rendered the skipped job's name literally as `Build (${{ inputs.artifact_type }})`, because GitHub doesn't evaluate expressions in a skipped job's name. `v1.0.1` gives the job the static name `Build`, and E5 ran on it.
 
 ## Local run results (pre-publish)
