@@ -93,6 +93,7 @@ Full walkthrough, including the build.yml touchpoints the exercise asks about: [
 | [docs/reviewer-guide.md](docs/reviewer-guide.md) | You're evaluating the exercise (15-minute guided path) |
 | [docs/end-to-end-guide.md](docs/end-to-end-guide.md) | You want to follow one PR through every hop, and reproduce it |
 | [docs/requirements-traceability.md](docs/requirements-traceability.md) | You want each requirement mapped to code and evidence |
+| [docs/reuse-and-onboarding.md](docs/reuse-and-onboarding.md) | You want to onboard a new repo, extend the framework or know its limits |
 | [docs/architecture.md](docs/architecture.md) | Design reference, extension points, security |
 | [docs/assumptions.md](docs/assumptions.md) | Mocked interfaces and interpretation decisions |
 | [docs/test-scenarios.md](docs/test-scenarios.md) | PASS/FAIL matrix and GitHub run evidence |

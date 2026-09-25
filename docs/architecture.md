@@ -93,6 +93,8 @@ Reviewer-facing feedback: `main.py` writes a markdown table to the job summary a
 
 ## Extending the framework
 
+Step-by-step onboarding, release rules and known limits are in [reuse-and-onboarding.md](reuse-and-onboarding.md).
+
 | Change | What to touch |
 |---|---|
 | New artifact type (for example `node`) | Add `utils/<type>_validator.py` and one entry in `VALIDATORS`. Consumers opt in with `artifact_type: <type>`. |

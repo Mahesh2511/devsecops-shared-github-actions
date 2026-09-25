@@ -154,4 +154,5 @@ Every requirement from the four source documents, mapped to where it's implement
 | Job summary table and `::error file=...::` annotations | Reviewers see why a check failed directly on the PR |
 | Path-traversal protection for `xml_path` / `working_directory` | Inputs are treated as untrusted |
 | `working_directory` action input | Monorepo support; lets CI point the action at fixtures |
+| [reuse-and-onboarding.md](reuse-and-onboarding.md) | Shows how any current or future repo adopts the framework, how it grows, and its limits |
 | Static `Build` job name (`v1.0.1`) | A skipped job's name isn't evaluated; a stable name is needed for required checks |

@@ -257,6 +257,7 @@ Release history here: `v1.0.0` (initial) -> `v1.0.1` (static build job name) -> 
 
 | Document | Purpose |
 |---|---|
+| [reuse-and-onboarding.md](reuse-and-onboarding.md) | Onboarding a new repo, extending the framework, known limits |
 | [architecture.md](architecture.md) | Design reference: build.yml touchpoints, decision factor, extension points, security |
 | [assumptions.md](assumptions.md) | Every mocked interface and interpretation decision |
 | [test-scenarios.md](test-scenarios.md) | Full PASS/FAIL matrix and GitHub run evidence |

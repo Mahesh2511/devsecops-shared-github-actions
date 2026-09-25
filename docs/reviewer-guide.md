@@ -89,4 +89,4 @@ The artifact check doesn't have its own gate. It joins the existing `result_map`
 | Framework CI on GitHub | Unit tests, 11 PR-check scenarios and 2 build-action runs, all passing |
 | End-to-end on GitHub | Backend and frontend on `main` pass. Backend mismatch fails, build skipped, merge blocked. Frontend malformed fails, then passes once fixed |
 
-Full matrix and run links: [test-scenarios.md](test-scenarios.md). Requirement-by-requirement mapping: [requirements-traceability.md](requirements-traceability.md).
+Full matrix and run links: [test-scenarios.md](test-scenarios.md). How any repo adopts the framework, and its limits: [reuse-and-onboarding.md](reuse-and-onboarding.md). Requirement-by-requirement mapping: [requirements-traceability.md](requirements-traceability.md).
