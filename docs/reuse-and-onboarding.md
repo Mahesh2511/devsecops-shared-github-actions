@@ -18,6 +18,8 @@ This framework is meant to serve every repository in the organization, including
 
 The two sample repositories prove this. They have different layouts, different types and different settings, and they use the same shared code without any special cases.
 
+A third repository, [payments-service](https://github.com/Mahesh2511/payments-service), was onboarded later by copying only the template. It has a different artifactId (`payments`) and a nested module at `api/v2/core/`, and it passed on its first run ([run 36120406422](https://github.com/Mahesh2511/payments-service/actions/runs/36120406422)) with no change to the framework.
+
 ## 2. Onboarding a new repository
 
 A new repository needs one file and one setting.
