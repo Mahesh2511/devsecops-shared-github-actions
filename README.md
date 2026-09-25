@@ -68,13 +68,13 @@ jobs:
 ## How it works
 
 ```
-consumer build.yml ──artifact_type, xml_path──▶ build.yml
-  build.yml   job pr-check ──same inputs──▶ pr_check.yml
+consumer build.yml --artifact_type, xml_path--> build.yml
+  build.yml   job pr-check --same inputs--> pr_check.yml
                 pr_check.yml: [1] checkout consumer source
                               [2] prcheck-utils-action (artifact_type, xml_path)
-                                    └─ main.py ─▶ backend_validator | frontend_validator
-                                    └─ result_map["artifact_consistency"] = {passed, ...}
-                                    └─ block_merge = any required check failed
+                                    +- main.py -> backend_validator | frontend_validator
+                                    +- result_map["artifact_consistency"] = {passed, ...}
+                                    +- block_merge = any required check failed
                               [3] gate: fail the job unless block_merge == "false"
   build.yml   job build   needs: pr-check, if: result == success && block_merge == 'false'
                           checkout -> build-action (artifact_type)
@@ -130,7 +130,7 @@ python actions/prcheck-utils-action/main.py --artifact-type frontend --xml-path 
 
 ## Versioning
 
-Consumers pin to a release tag (`@v1` or `@v1.2.0`), never `@main`. `build.yml` calls `pr_check.yml` with a local `./` reference, which resolves to the same commit as `build.yml`. `pr_check.yml` references the action as `…/prcheck-utils-action@v1`, because `uses:` can't be an expression and a `./` action path would point at the consumer's checkout. A release therefore means moving the major tag after tagging the exact version:
+Consumers pin to a release tag (`@v1` or `@v1.2.0`), never `@main`. `build.yml` calls `pr_check.yml` with a local `./` reference, which resolves to the same commit as `build.yml`. `pr_check.yml` references the action as `.../prcheck-utils-action@v1`, because `uses:` can't be an expression and a `./` action path would point at the consumer's checkout. A release therefore means moving the major tag after tagging the exact version:
 
 ```bash
 git tag v1.0.0 && git tag -f v1 && git push origin v1.0.0 && git push -f origin v1

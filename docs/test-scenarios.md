@@ -4,7 +4,7 @@ Scenarios are covered at three levels:
 
 1. **Unit tests** (`tests/`, `python -m unittest discover -s tests -v`) cover the validators, result_map, block_merge and the `$GITHUB_OUTPUT` contract.
 2. **Action scenarios** (`.github/workflows/ci.yml`, job `action-scenarios`) run the real composite action on GitHub against the fixtures in `tests/fixtures/` and assert `block_merge`.
-3. **End-to-end PRs** in `backend-sample` and `frontend-sample` exercise the full chain: consumer → build.yml → pr_check.yml → action → gate → build.
+3. **End-to-end PRs** in `backend-sample` and `frontend-sample` exercise the full chain: consumer -> build.yml -> pr_check.yml -> action -> gate -> build.
 
 ## Scenario matrix
 
@@ -31,7 +31,7 @@ Scenarios are covered at three levels:
 | R2 | Other failing check still blocks | any | `security_check.passed=false`, artifact passes | `block_merge=true` | `test_existing_failure_still_blocks_even_if_artifact_check_passes` |
 | R3 | Fail-safe gating | any | Entry missing `passed`, `"true"` string, `null`, empty map | `block_merge=true` | `test_fail_safe_on_ambiguous_entries` |
 | R4 | Output contract | both | Pass and fail runs | `$GITHUB_OUTPUT` has `result_map` (JSON) and `block_merge`; exit 0 | `GitHubOutputContractTest` |
-| BA1 | Build action plans | backend / frontend | Build job after a passing PR check | Per-type plan (`mvn …` / `npm …`); output `artifact_type` | `test_backend_plan`, `test_frontend_plan`; ci.yml `build-action` job |
+| BA1 | Build action plans | backend / frontend | Build job after a passing PR check | Per-type plan (`mvn ...` / `npm ...`); output `artifact_type` | `test_backend_plan`, `test_frontend_plan`; ci.yml `build-action` job |
 | BA2 | Build action, unknown type | `mobile` | Called directly | Exit 1, `Unsupported artifact_type` | `test_unsupported_type_fails` |
 
 ## End-to-end demonstration on GitHub
@@ -40,26 +40,26 @@ After the three repositories are published and `v1` is tagged on the shared repo
 
 | Step | Repo | Change in a PR | Expected on the PR |
 |---|---|---|---|
-| E1 | backend-sample | Any harmless change (README) | `PR Check` ✅ → `Build` ✅ |
-| E2 | backend-sample | `service-b/pom.xml`: project `artifactId` → `another-service` | `PR Check` ❌ (`artifactId mismatch … 'another-service' in service-b/pom.xml`), `Build` **skipped**; merge blocked if required |
-| E3 | frontend-sample | Any harmless change | `PR Check` ✅ → `Build` ✅ |
-| E4 | frontend-sample | Break `config/settings.xml` (remove a closing tag) | `PR Check` ❌ with annotation on `config/settings.xml`, `Build` **skipped** |
+| E1 | backend-sample | Any harmless change (README) | `PR Check` passes, then `Build` passes |
+| E2 | backend-sample | `service-b/pom.xml`: project `artifactId` -> `another-service` | `PR Check` fails (`artifactId mismatch ... 'another-service' in service-b/pom.xml`), `Build` **skipped**; merge blocked if required |
+| E3 | frontend-sample | Any harmless change | `PR Check` passes, then `Build` passes |
+| E4 | frontend-sample | Break `config/settings.xml` (remove a closing tag) | `PR Check` fails with annotation on `config/settings.xml`, `Build` **skipped** |
 | E5 | frontend-sample | Revert E4 on the same PR | Check goes green again, build runs |
 
-To enforce blocking: *Settings → Branches (or Rules) → require status check* `build / PR Check / PR checks` on `main`.
+To enforce blocking: *Settings -> Branches (or Rules) -> require status check* `build / PR Check / PR checks` on `main`.
 
 ### Actual results on GitHub (2026-09-25)
 
 | Step | Run | `build / PR Check / PR checks` | `build / Build` | Evidence from the log |
 |---|---|---|---|---|
-| Framework CI | [devsecops-shared-github-actions run 36115259928](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions/runs/36115259928) | n/a | n/a | Unit tests plus all 11 action scenarios ✅ |
-| E1 (manual run on `main`) | [backend-sample run 36115388011](https://github.com/Mahesh2511/backend-sample/actions/runs/36115388011) | ✅ | ✅ | `block_merge=false` |
-| E2 | [backend-sample PR #1](https://github.com/Mahesh2511/backend-sample/pull/1) | ❌ | skipped | `artifactId mismatch: 2 distinct values found: 'another-service' in service-b/pom.xml; 'sample-service' in pom.xml, service-a/pom.xml` |
-| E3 (manual run on `main`) | [frontend-sample run 36115393163](https://github.com/Mahesh2511/frontend-sample/actions/runs/36115393163) | ✅ | ✅ | `block_merge=false` |
-| E4 | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1), commit 1 | ❌ | skipped | `config/settings.xml: mismatched tag: line 8, column 2` (inline annotation) |
-| E5 | frontend-sample PR #1, commit 2 | ✅ | ✅ | `artifact_type=frontend`, `block_merge=false`, mock build ran |
-| After `v1.1.0` (build-action) | [framework CI 36116539311](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions/runs/36116539311) · [backend 36116569204](https://github.com/Mahesh2511/backend-sample/actions/runs/36116569204) · [frontend 36116573971](https://github.com/Mahesh2511/frontend-sample/actions/runs/36116573971) | ✅ | ✅ | Build job runs `build-action@v1`: `MOCK step 1: mvn -B -ntp verify` |
-| E2 re-run on `v1.1.0` | [backend-sample run 36117166128](https://github.com/Mahesh2511/backend-sample/actions/runs/36117166128) (empty commit on PR #1) | ❌ | skipped (now named `build / Build`) | Same mismatch error. PR still `BLOCKED` |
+| Framework CI | [devsecops-shared-github-actions run 36115259928](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions/runs/36115259928) | n/a | n/a | Unit tests plus all 11 action scenarios pass |
+| E1 (manual run on `main`) | [backend-sample run 36115388011](https://github.com/Mahesh2511/backend-sample/actions/runs/36115388011) | Pass | Pass | `block_merge=false` |
+| E2 | [backend-sample PR #1](https://github.com/Mahesh2511/backend-sample/pull/1) | Fail | skipped | `artifactId mismatch: 2 distinct values found: 'another-service' in service-b/pom.xml; 'sample-service' in pom.xml, service-a/pom.xml` |
+| E3 (manual run on `main`) | [frontend-sample run 36115393163](https://github.com/Mahesh2511/frontend-sample/actions/runs/36115393163) | Pass | Pass | `block_merge=false` |
+| E4 | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1), commit 1 | Fail | skipped | `config/settings.xml: mismatched tag: line 8, column 2` (inline annotation) |
+| E5 | frontend-sample PR #1, commit 2 | Pass | Pass | `artifact_type=frontend`, `block_merge=false`, mock build ran |
+| After `v1.1.0` (build-action) | [framework CI 36116539311](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions/runs/36116539311), [backend 36116569204](https://github.com/Mahesh2511/backend-sample/actions/runs/36116569204), [frontend 36116573971](https://github.com/Mahesh2511/frontend-sample/actions/runs/36116573971) | Pass | Pass | Build job runs `build-action@v1`: `MOCK step 1: mvn -B -ntp verify` |
+| E2 re-run on `v1.1.0` | [backend-sample run 36117166128](https://github.com/Mahesh2511/backend-sample/actions/runs/36117166128) (empty commit on PR #1) | Fail | skipped (now named `build / Build`) | Same mismatch error. PR still `BLOCKED` |
 
 **Merge blocking.** Both sample repos protect `main` with the required status check `build / PR Check / PR checks`. It's restricted to the GitHub Actions app (id 15368) and also enforced for admins. Result: backend PR #1 shows `mergeStateStatus=BLOCKED` and `gh pr merge` is refused. Frontend PR #1, whose check passed, is `CLEAN`. `build / Build` isn't a required check: a skipped required check counts as passing, so requiring it would add nothing.
 
@@ -86,4 +86,4 @@ block_merge=true (failed required checks: artifact_consistency)        exit 1
 block_merge=true (failed required checks: artifact_consistency)        exit 1
 ```
 
-All workflow files also pass `actionlint` 1.7.12, which checks `build.yml` → `pr_check.yml` inputs and outputs across the local reusable-workflow call.
+All workflow files also pass `actionlint` 1.7.12, which checks `build.yml` -> `pr_check.yml` inputs and outputs across the local reusable-workflow call.

@@ -25,7 +25,7 @@ Jobs: `pr-check` (calls `pr_check.yml`), then `build` (`needs: pr-check`).
 | output | `result_map` | string (JSON) | | |
 | output | `block_merge` | string | | |
 
-Steps: checkout → prcheck-utils-action → gate step that fails the job unless `block_merge == "false"`.
+Steps: checkout -> prcheck-utils-action -> gate step that fails the job unless `block_merge == "false"`.
 **Assumed about the real one:** it already runs other checks through prcheck-utils-action and enforces `block_merge` by failing the job. If the real workflow enforces differently, for example through a separate gating job, the artifact check still plugs in unchanged, because it only contributes a `result_map` entry.
 
 ### `prcheck-utils-action` (composite action)
@@ -68,15 +68,15 @@ Only `passed` is load-bearing for gating. `required` defaults to `true`. The oth
 | Build steps | `build-action` prints the per-type plan | Real toolchain steps |
 | Merge blocking | Failed `PR checks` job; required status check configured manually | Org ruleset requiring the PR-check status on all repos |
 | Existing PR checks | Not implemented; `result_map` input accepts their results | security, dependency and other checks |
-| Cross-repo access | Shared repo must be public, or (if private or internal) *Settings → Actions → General → Access* must allow other repos in the org/account | Same |
+| Cross-repo access | Shared repo must be public, or (if private or internal) *Settings -> Actions -> General -> Access* must allow other repos in the org/account | Same |
 
 ## Interpretation decisions
 
 1. **"artifactId of each pom.xml"** means the project's own coordinate: the `<artifactId>` that is a direct child of `<project>`. Values inside `<parent>`, `<dependencies>`, `<plugins>` and so on are ignored. Otherwise every POM with a dependency would "mismatch".
-2. **Maven reactor caveat.** In a real multi-module Maven build, every module must have a *unique* `groupId:artifactId`. A reactor where all modules share one `artifactId` fails with `Project '…' is duplicated in the reactor`. Verified with Maven 3.9.16 on `backend-sample`: `Project 'com.example:sample-service:1.0.0-SNAPSHOT' is duplicated in the reactor`. The demo is unaffected because the build step is mocked. The rule is implemented exactly as specified ("all artifactId values must match"), and the sample project follows it. Likely intents in the real organization are repositories that contain several single-module POMs for one artifact, or a rule that really means "all modules share the same parent artifactId". Either is a small change in `backend_validator.extract_artifact_id`, and this should be confirmed with the framework owners.
+2. **Maven reactor caveat.** In a real multi-module Maven build, every module must have a *unique* `groupId:artifactId`. A reactor where all modules share one `artifactId` fails with `Project '...' is duplicated in the reactor`. Verified with Maven 3.9.16 on `backend-sample`: `Project 'com.example:sample-service:1.0.0-SNAPSHOT' is duplicated in the reactor`. The demo is unaffected because the build step is mocked. The rule is implemented exactly as specified ("all artifactId values must match"), and the sample project follows it. Likely intents in the real organization are repositories that contain several single-module POMs for one artifact, or a rule that really means "all modules share the same parent artifactId". Either is a small change in `backend_validator.extract_artifact_id`, and this should be confirmed with the framework owners.
 3. **"All" `pom.xml` means recursive from the repository root.** Only `.git/` is skipped. Build output (`target/`) isn't present on a fresh checkout, so no other exclusions are hard-coded.
 4. **No files found is a failure.** A backend repo without `pom.xml`, or an `xml_path` with no `*.xml`, is treated as misconfiguration, not as a vacuous pass.
 5. **Frontend "valid" means well-formed.** No XSD or DTD validation and no content comparison. The extension match is case-insensitive (`.xml`, `.XML`).
-6. **`artifact_type` is validated in the action**, because `workflow_call` string inputs can't declare allowed values. It's case- and whitespace-insensitive (`" Backend "` → `backend`).
+6. **`artifact_type` is validated in the action**, because `workflow_call` string inputs can't declare allowed values. It's case- and whitespace-insensitive (`" Backend "` -> `backend`).
 7. **The action exits 0 when it produces a verdict.** Enforcement lives in `pr_check.yml`'s gate step, so `result_map` and `block_merge` are always published. `main.py --enforce` exists for local or standalone use.
 8. **Consumer triggers:** `pull_request` as required, plus `workflow_dispatch` for manual demo runs.

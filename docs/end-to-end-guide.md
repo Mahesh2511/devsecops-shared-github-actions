@@ -11,20 +11,24 @@ This guide follows a single pull request through the whole system, one hop at a 
 **The solution.** All the logic lives in one shared repository. Every other repository contains a single, tiny workflow file that says what kind of artifact it is.
 
 ```
-        ┌───────────────────────────┐        ┌────────────────────────────┐
-        │ backend-sample            │        │ frontend-sample            │
-        │  build.yml (14 lines)     │        │  build.yml (15 lines)      │
-        │  artifact_type: backend   │        │  artifact_type: frontend   │
-        │                           │        │  xml_path: config          │
-        └─────────────┬─────────────┘        └──────────────┬─────────────┘
-                      │     uses: …/build.yml@v1            │
-                      └───────────────────┬─────────────────┘
-                                          ▼
-   ┌────────────────────── devsecops-shared-github-actions (Shared Library) ──────────────────────┐
-   │  Workflow                                   Actions                                          │
-   │   ├─ build.yml     (orchestrates stages)     ├─ build-action        action.yml/main.py/utils  │
-   │   └─ pr_check.yml  (checkout → check → gate) └─ prcheck-utils-action action.yml/main.py/utils  │
-   └──────────────────────────────────────────────────────────────────────────────────────────────┘
+   +---------------------------+          +----------------------------+
+   | backend-sample            |          | frontend-sample            |
+   |   build.yml (14 lines)    |          |   build.yml (15 lines)     |
+   |   artifact_type: backend  |          |   artifact_type: frontend  |
+   |                           |          |   xml_path: config         |
+   +-------------+-------------+          +--------------+-------------+
+                 |                                       |
+                 +--------- uses: .../build.yml@v1 ------+
+                                     |
+                                     v
+   +--------------- devsecops-shared-github-actions (Shared Library) ---------------+
+   |                                                                                |
+   |   Workflow                              Actions                                |
+   |     build.yml     orchestrates stages     build-action                         |
+   |     pr_check.yml  checkout, check, gate   prcheck-utils-action                 |
+   |                                           (each: action.yml, main.py, utils/)  |
+   |                                                                                |
+   +--------------------------------------------------------------------------------+
 ```
 
 This is the layout drawn in `image.png`: *Repo (backend)* and *Repo (frontend)* consume a *Shared Library*, which holds *Workflow* (`build.yml`, `pr_check.yml`) and *Actions* (build action, PR_check action, each built from `Action.yml`, `Utils` and `main.py`).
@@ -47,8 +51,8 @@ This is the layout drawn in `image.png`: *Repo (backend)* and *Repo (frontend)* 
 | **`needs:`** | Makes a job wait for another job and **skip** if that job fails | `build` has `needs: pr-check` |
 | **Composite action** | A reusable bundle of steps (`action.yml`), called from a step | `prcheck-utils-action`, `build-action` |
 | **Step output** | A value a step writes to the `$GITHUB_OUTPUT` file | `result_map`, `block_merge` |
-| **Status check** | Every job shows up on the PR as a ✅ or ❌ check | `build / PR Check / PR checks` |
-| **Required status check** | A branch protection setting: the PR can't merge until the named check is ✅ | Set on `main` in both sample repos |
+| **Status check** | Every job shows up on the PR as a passing or failing check | `build / PR Check / PR checks` |
+| **Required status check** | A branch protection setting: the PR can't merge until the named check passes | Set on `main` in both sample repos |
 | **Tag pinning (`@v1`)** | Selects which version of shared code is used | Consumers use `@v1` |
 
 ---
@@ -105,7 +109,7 @@ Line 54: `uses: Mahesh2511/devsecops-shared-github-actions/actions/prcheck-utils
 
 The action is referenced by full name and tag, not `./actions/...`, because after step 3 the `./` path refers to the *consumer's* files.
 
-### Step 5: inside the action (`action.yml` → `main.py`)
+### Step 5: inside the action (`action.yml` -> `main.py`)
 
 [`action.yml`](../actions/prcheck-utils-action/action.yml) sets up Python and runs `main.py`. It passes the inputs through environment variables (`PRCHECK_ARTIFACT_TYPE=backend`), never by pasting them into the shell script, which prevents injection.
 
@@ -113,7 +117,7 @@ The action is referenced by full name and tag, not `./actions/...`, because afte
 
 1. `run_checks()` runs every check registered in `CHECKS`. Today there's one, `artifact_consistency`.
 2. `run_artifact_consistency()` looks up `VALIDATORS["backend"]` and calls `validate_backend()`.
-   * An unknown type such as `mobile` → failure: *"Unsupported artifact_type 'mobile'. Supported values: backend, frontend."*
+   * An unknown type such as `mobile` -> failure: *"Unsupported artifact_type 'mobile'. Supported values: backend, frontend."*
 
 ### Step 6: the backend validator (`utils/backend_validator.py`)
 
@@ -159,11 +163,11 @@ Back in `build.yml`, `pr-check` failed, so `needs` skips `build`. The `if:` cond
 
 ### Step 10: the merge is blocked
 
-`main` in backend-sample has a branch protection rule: **required status check `build / PR Check / PR checks`**, from GitHub Actions, enforced for admins. The check is ❌, so GitHub shows `mergeStateStatus: BLOCKED`, and `gh pr merge` was refused.
+`main` in backend-sample has a branch protection rule: **required status check `build / PR Check / PR checks`**, from GitHub Actions, enforced for admins. The check failed, so GitHub shows `mergeStateStatus: BLOCKED`, and `gh pr merge` was refused.
 
 ### Step 11 (pass path): the developer fixes the file
 
-When every check passes, the result is `block_merge=false` → the gate exits 0 → the job is ✅ → the `build` job runs → it checks out the code → `build-action@v1` resolves the backend plan (`mvn -B -ntp verify`, publish) → ✅. The PR becomes mergeable. This is demonstrated on [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1): commit 1 broke the XML (❌, build skipped), commit 2 fixed it (✅, build ran).
+When every check passes, the result is `block_merge=false` -> the gate exits 0 -> the job passes -> the `build` job runs -> it checks out the code -> `build-action@v1` resolves the backend plan (`mvn -B -ntp verify`, publish) -> passes. The PR becomes mergeable. This is demonstrated on [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1): commit 1 broke the XML (failed, build skipped), commit 2 fixed it (passed, build ran).
 
 ---
 
@@ -189,11 +193,11 @@ sequenceDiagram
   A-->>P: result_map, block_merge
   P->>P: [3] gate: exit 1 unless block_merge == "false"
   alt block_merge = false
-    B->>BA: job build (needs pr-check) → build plan
-    GH-->>Dev: checks green → merge allowed
+    B->>BA: job build (needs pr-check) -> build plan
+    GH-->>Dev: checks green -> merge allowed
   else block_merge = true
     B--xBA: build skipped
-    GH-->>Dev: required check failed → merge BLOCKED
+    GH-->>Dev: required check failed -> merge BLOCKED
   end
 ```
 
@@ -218,12 +222,12 @@ python actions/build-action/main.py --artifact-type frontend
 
 ### On GitHub
 
-| To see… | Do this |
+| To see... | Do this |
 |---|---|
-| A pass | Actions tab → *Build* → *Run workflow* on `main` (manual trigger), or open any harmless PR |
-| A backend failure | Open [backend-sample PR #1](https://github.com/Mahesh2511/backend-sample/pull/1) → Checks tab → the failing step's log and the job summary |
-| A frontend failure and its fix | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1) → the commits tab shows ❌ then ✅ |
-| The merge block | backend-sample PR #1 → the merge box says required checks failed |
+| A pass | Actions tab -> *Build* -> *Run workflow* on `main` (manual trigger), or open any harmless PR |
+| A backend failure | Open [backend-sample PR #1](https://github.com/Mahesh2511/backend-sample/pull/1) -> Checks tab -> the failing step's log and the job summary |
+| A frontend failure and its fix | [frontend-sample PR #1](https://github.com/Mahesh2511/frontend-sample/pull/1) -> the commits tab shows a failure, then a pass |
+| The merge block | backend-sample PR #1 -> the merge box says required checks failed |
 | The framework's own tests | [Framework CI runs](https://github.com/Mahesh2511/devsecops-shared-github-actions/actions): 36 unit tests, 11 PR-check scenarios, 2 build-action runs |
 
 Create your own failure in two minutes:
@@ -233,19 +237,19 @@ gh repo clone Mahesh2511/frontend-sample && cd frontend-sample
 git checkout -b try/broken-xml
 sed -i 's#</locale>#<locale>#' config/settings.xml
 git commit -am "try: break xml" && git push -u origin try/broken-xml
-gh pr create --fill       # then watch: PR Check ❌, Build skipped, merge blocked
+gh pr create --fill       # then watch: PR Check fails, Build is skipped, merge is blocked
 ```
 
 ---
 
 ## 6. How a change to the framework reaches consumers
 
-1. Change the shared repo on a branch → Framework CI (`ci.yml`) runs unit tests plus scenario tests of the real actions.
+1. Change the shared repo on a branch -> Framework CI (`ci.yml`) runs unit tests plus scenario tests of the real actions.
 2. Merge to `main`, then tag the exact version and move the major tag:
    `git tag v1.1.0 && git tag -f v1 && git push origin v1.1.0 && git push -f origin v1`
-3. Every consumer on `@v1` picks it up on its next run, with no consumer change needed. A breaking change goes out as `v2`, and consumers opt in by changing `@v1` → `@v2`.
+3. Every consumer on `@v1` picks it up on its next run, with no consumer change needed. A breaking change goes out as `v2`, and consumers opt in by changing `@v1` -> `@v2`.
 
-Release history here: `v1.0.0` (initial) → `v1.0.1` (static build job name) → `v1.1.0` (build-action). `v1` currently points to `v1.1.0`.
+Release history here: `v1.0.0` (initial) -> `v1.0.1` (static build job name) -> `v1.1.0` (build-action). `v1` currently points to `v1.1.0`.
 
 ---
 
@@ -256,5 +260,5 @@ Release history here: `v1.0.0` (initial) → `v1.0.1` (static build job name) �
 | [architecture.md](architecture.md) | Design reference: build.yml touchpoints, decision factor, extension points, security |
 | [assumptions.md](assumptions.md) | Every mocked interface and interpretation decision |
 | [test-scenarios.md](test-scenarios.md) | Full PASS/FAIL matrix and GitHub run evidence |
-| [requirements-traceability.md](requirements-traceability.md) | Each requirement → where and how it's fulfilled |
+| [requirements-traceability.md](requirements-traceability.md) | Each requirement -> where and how it's fulfilled |
 | [reviewer-guide.md](reviewer-guide.md) | A short guided review path for the evaluator |
