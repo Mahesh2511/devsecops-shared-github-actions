@@ -6,7 +6,7 @@
     <artifactId>different-parent-id</artifactId>
     <version>1.0</version>
   </parent>
-  <artifactId>orders-api</artifactId>
+  <artifactId>orders-API</artifactId>
   <dependencies>
     <dependency>
       <groupId>org.other</groupId>
