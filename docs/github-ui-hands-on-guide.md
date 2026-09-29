@@ -1,11 +1,5 @@
 # Hands-on guide using only the GitHub website
 
-This guide lets anyone, including someone who has never seen this project, understand the whole PR-check framework by using it in a browser. You don't need Git, Python or a terminal. Every scenario is a short loop: create a branch, change a file, open a pull request, watch what the checks do, and read why.
-
-Work through it in order. Part 2 explains the system in one page, and every later scenario refers back to it.
-
-Time needed: about 2 to 3 hours for everything, or about 45 minutes for the core scenarios (marked **Core**).
-
 ---
 
 ## Part 1. Before you start
